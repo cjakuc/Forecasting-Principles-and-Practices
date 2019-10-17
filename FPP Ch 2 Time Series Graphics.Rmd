@@ -1,0 +1,311 @@
+---
+title: "FPP Ch2"
+author: "Chris Jakuc"
+date: "10/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+library(tidyverse)
+library(GGally)
+```
+
+
+# 2.1 ts Objects
+```{r}
+y <- ts(c(123,39,78,52,110), start=2012)
+```
+
+# 2.2 Time Plots
+
+autoplot() function automatically produces a plot of whatever is passed to it in the first argument. melsyd[,"Economy.Class"] is recognized as a time series
+
+```{r}
+autoplot(melsyd[,"Economy.Class"]) +
+  ggtitle("Economy class passengers: Melbourne-Sydney") +
+  xlab("Year") +
+  ylab("Thousands")
+```
+
+Peaks and valleys correspond to events:
+
+* There was a period in 1989 when no passengers were carried — this was due to an industrial dispute.
+* There was a period of reduced load in 1992. This was due to a trial in which some economy class seats were replaced by business class seats.
+* A large increase in passenger load occurred in the second half of 1991.
+* There are some large dips in load around the start of each year. These are due to holiday effects.
+* There is a long-term fluctuation in the level of the series which increases during 1987, decreases in 1989, and increases again through 1990 and 1991.
+* There are some periods of missing observations.
+
+
+```{r}
+autoplot(a10)+
+  ggtitle("Antidiabetic drug sales")+
+  ylab("$ million")+
+  xlab("Year")
+```
+
+* Clear increasing trend
+* Strong seasonal pattern caused by government subsidation that causes paitents to stockpile medication at the end of a calendar year
+
+# 2.3 Time Series Patterns
+
+**Trend**: long term increase or decrease; does not have to be linear
+
+**Seasonal**: affected by time of year/day of week/etc. Fixed and known frequency
+
+**Cyclic**: rises and falls that are not of a fixed frequency. Usually due to economic conditions ("business cycle"). Duration is usually at least 2 years
+
+# 2.4 Seasonal Plots
+```{r}
+ggseasonplot(a10, year.labels=TRUE, year.labels.left=T)+
+  ylab("$ million")+
+  ggtitle("Seasonal Plot: Antidiabetic Drug Sales")
+```
+
+* Called a Seasonal Plot
+    + Allows the underlying seasonal pattern to be seen more clearly
+    + Useful for identifying years in which the pattern changes
+* Same data displayed as before
+    + Each year is overlayed
+
+```{r}
+ggseasonplot(a10, polar=T)+
+  ylab("$ million")+
+  ggtitle("Polar Seasonal Plot: Antidiabetic Drug Sales")
+```
+
+* Polar seasonal plots are a "useful variation of a seasonal plot
+    + makes the time series axis circular rather than horizontal
+    
+# 2.4 Seasonal Subseries Plots
+```{r}
+ggsubseriesplot(a10)+
+  ylab("$ million")+
+  ggtitle("Seasonal Subseries Plot: Antidiabetic Drug Sales")
+```
+
+* Seasonal Subseries Plot
+    + Data for each season are collected together in separate mini time plots
+    + Horizontal lines indicate the means for each month
+* Enables the underlying seasonal pattern to be seen clearly
+    + Also shows the changes in seasonality over time
+
+# 2.6 Scatterplots
+```{r}
+head(elecdemand)
+
+autoplot(elecdemand[,c("Demand","Temperature")],facets=T)+
+  xlab("Year: 2014")+
+  theme(axis.title.x = element_text(size=12))+
+  ylab("")+
+  ggtitle("Half-hourly Electricity Demand: Victoria, Australia")
+```
+
+* Exploring relationships **between** time series
+
+* We can further study the relationship between demand and temperature by plotting one series against the other
+
+```{r}
+qplot(Temperature, Demand, data=as.data.frame(elecdemand))+
+  ylab("Demand (GW")+
+  xlab("Temperature (Celsius)")
+```
+
+* This scatterplot helps us visualize the relationship
+    + Demand occurs when temps are high (air conditioning)
+    + There is also a heating effect where demand increase for very low temps
+
+
+## Correlation
+* Often used to show the strength of relationship between two variables
+    + Can be misleading if relationship is non-linear (like electricity demand vs temp) and the same correlation coefficient can represent many different relationships
+
+Ex1 (effect size may be too small to be useful, r=1):
+```{r}
+x<-c(1,2,3,4,5,6)
+y<-c(1,2,3,4,5,6)
+t<-tibble(
+  x=x,
+  y=y
+)
+ggplot(t)+
+  geom_point(aes(x=x,y=y))
+cor(x,y)
+
+x<-c(1,2,3,4,5,6)
+y<-c(.01,.011,.012,.013,.014,.015)
+t<-tibble(
+  x=x,
+  y=y
+)
+ggplot(t)+
+  geom_point(aes(x=x,y=y))
+cor(x,y)
+```
+
+Ex 2 (outlier can make correlation misleading):
+```{r}
+
+x<-c(10,20,30,40,50,60)
+y<-c(1,2,3,4,5,1000)
+t<-tibble(
+  x=x,
+  y=y
+)
+ggplot(t)+
+  geom_point(aes(x=x,y=y))
+cor(x,y)
+```
+
+
+Ex 3 (non-linear relationships may be missed, r=1):
+```{r}
+x<-c(1,2,3,4,5,6,7)
+y<-c(1,25,50,75,50,25,1)
+t<-tibble(
+  x=x,
+  y=y
+)
+ggplot(t)+
+  geom_point(aes(x=x,y=y))
+cor(x,y)
+```
+
+## Scatterplot Matrices
+
+* When there are several potential predictor variables, it an be useful to plot the variables against eachother
+    + Let's use these five time series of quarterly visitor numbers for five regions of Australia as an example
+```{r}
+head(visnights)
+autoplot(visnights[,1:5],facets=T)+
+  ylab("Number of Visitor Nights Each Quarter (millions)")
+```
+
+* We can plot these five time series against the others using a scatterplot matrix
+```{r}
+GGally::ggpairs(as.data.frame(visnights[,1:5]))
+```
+
+* We can see the correlations, scatterplots, and density plots to easily see relationships and outliers
+
+# 2.7 Lag Plots
+```{r}
+beer2 <- window(ausbeer, start=1992)
+gglagplot(beer2)
+```
+
+* The lag plot allows us to see the seasonality
+    + There is a strong positibe correlation at lags 4 and 8, reflecting the seasonality
+* The `window()` function allows us to extract a portion of a time series, in this case we extracted data beginning in 1992
+
+# 2.8 Autocorrelation
+* Another way to see the seasonality in lagged variables is to use autocorrelation
+    + Similar to how correlation measures the linear relationship between variables, autocorrelation measures the linear relationship between lagged values of a time series
+```{r}
+ggAcf(beer2)
+```
+
+* It makes sense that the positive correlation is strongest 4 quarters (1 year) lagged and decreases as time goes on
+* The dashed blue lines indicate whether the correlations are significantly different from zero
+* When data have a trend, the autocoreelations for small lags tend to be large and positive because observations close in time are also similar in size. So the ACF of trended time series tend to have positive values that slowly decrease as the lags increase
+* When data are seasonal, the autocorrelation will be larger for the seasonal lags (at multiples of the seasonal frequency) than for other lags.
+* When data are both trended and seasonal you see a combination of these effects
+    + An example of this is monthly Australian electricity demand
+```{r}
+aelec<- window(elec,start=1980)
+autoplot(aelec)+
+  xlab("Year")+
+  ylab("GWh")
+```
+
+```{r}
+ggAcf(aelec,lag=48)
+```
+
+# 2.9 White Noise
+
+* Time series that show no autocorrelation are called white noise
+
+```{r}
+set.seed(30)
+y<-ts(rnorm(50))
+autoplot(y)+
+  ggtitle("White Noise")
+```
+
+```{r}
+ggAcf(y)
+```
+
+* The blue dashed lines that show significance are +/-2 * sqrt(T), where T is the length of the time series
+    + For white noise, it is expected that 95% of the correlation spikes will be within this level
+    + If substantially more than 5% of spikes are outside these bounds, then the series is probably not white noise
+    + In this example, T=50 and so the bounds are +/-0.28
+    
+# Exercises
+
+## 1.
+```{r}
+autoplot(gold)+
+  ggtitle("Daily Morning Gold Prices")+
+  ylab("US Dollars")+
+  xlab("Time (January 1985-March 1989)")
+autoplot(woolyrnq)+
+  ggtitle("Quarterly Production of Woolen Yarn in Australia")+
+  ylab("Tonnes of Woolen Yarn")+
+  xlab("Time (March 1965-September 1994)")
+autoplot(gas)+
+  ggtitle("Australian Monthly Gas Production")+
+  xlab("Time (1956-1995)")
+frequency(gold)
+frequency(woolyrnq)
+frequency(gas)
+which.max(gold)
+```
+
+## 2.
+```{r}
+# Read in Data
+tute1<-read.csv("tute1.csv",header=T)
+View(tute1)
+
+# Convert data to time series
+mytimeseries<-ts(tute1[,-1],start=1981,frequency=4)
+
+# Construct time series plots of each of the three series
+autoplot(mytimeseries,facets=T)
+autoplot(mytimeseries)
+```
+
+## 3.
+```{r}
+# Read in Data
+retaildata<-readxl::read_excel("retail.xlsx",skip=1)
+
+# Select on of the time series
+myts<-ts(retaildata[,"A3349335T"],frequency=12,start=c(1982,4))
+
+# Explore the time series
+autoplot(myts)
+ggseasonplot(myts)
+ggsubseriesplot(myts)
+gglagplot(myts)
+ggAcf(myts)
+```
+
+## 4.
+```{r}
+autoplot(goog)+
+  ggtitle("Closing Stock Prices of GOOD from NASDAQ")+
+  xlab("Time(Feb 2013-Feb 2017")+
+  ylab("Price")
+```
+
+## 5.
+```{r}
+ggseasonplot(writing)
+ggsubseriesplot(writing)
+```
+
